@@ -285,3 +285,5 @@ Expected result: **43 passed, 0 warnings**.
 ## Maintainers
 
 - Aagaman Pokhrel - [AgroKING](https://github.com/AgroKING)
+- Abhinav Rijal - [abhinavrijal0-p](https://github.com/abhinavrijal0-p)
+- Kritan Lamichhane -[kritanlamichhane](https://github.com/kritanlamichhane)
