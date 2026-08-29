@@ -172,7 +172,7 @@ def insert_audit_log(conn: sqlite3.Connection, entry: AuditEntry) -> None:
             entry.override_reason_code,
             entry.override_note,
             entry.dwell_seconds,
-            json.dumps(entry.vitals_snapshot),
+            json.dumps(entry.vitals_snapshot, default=str),
         ),
     )
     conn.commit()

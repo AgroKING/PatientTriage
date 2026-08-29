@@ -92,7 +92,7 @@ def test_start_walking_is_green():
     assert cat == "GREEN"
 
 
-def test_start_apneic_no_recovery_is_black():
+def test_start_apneic_no_recovery_is_blue():
     sm = SurgeManager()
     sm.activate()
     cat = sm.start_triage(
@@ -103,7 +103,7 @@ def test_start_apneic_no_recovery_is_black():
         follows_commands=False,
         breathing_after_airway=False,
     )
-    assert cat == "BLACK"
+    assert cat == "BLUE"
 
 
 def test_start_high_rr_is_red():

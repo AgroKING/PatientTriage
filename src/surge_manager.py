@@ -5,16 +5,16 @@ class SurgeManager:
             "RED": [],
             "YELLOW": [],
             "GREEN": [],
-            "BLACK": [],
+            "BLUE": [],
         }
 
     def activate(self) -> None:
         self.active = True
-        self.categories = {"RED": [], "YELLOW": [], "GREEN": [], "BLACK": []}
+        self.categories = {"RED": [], "YELLOW": [], "GREEN": [], "BLUE": []}
 
     def deactivate(self) -> None:
         self.active = False
-        self.categories = {"RED": [], "YELLOW": [], "GREEN": [], "BLACK": []}
+        self.categories = {"RED": [], "YELLOW": [], "GREEN": [], "BLUE": []}
 
     def is_active(self) -> bool:
         return self.active
@@ -32,7 +32,7 @@ class SurgeManager:
             category = "GREEN"
         elif respiratory_rate is None or respiratory_rate == 0:
             if not breathing_after_airway:
-                category = "BLACK"
+                category = "BLUE"
             else:
                 category = "RED"
         elif respiratory_rate > 30:
@@ -52,8 +52,17 @@ class SurgeManager:
         self.categories[category].append(patient_id)
         return category
 
+    def _migrate(self) -> None:
+        if "BLACK" in self.categories:
+            black_pts = self.categories.pop("BLACK", [])
+            if "BLUE" not in self.categories:
+                self.categories["BLUE"] = []
+            self.categories["BLUE"].extend(black_pts)
+
     def get_stats(self) -> dict[str, int]:
+        self._migrate()
         return {cat: len(patients) for cat, patients in self.categories.items()}
 
     def get_all_categorized(self) -> dict[str, list[str]]:
+        self._migrate()
         return self.categories

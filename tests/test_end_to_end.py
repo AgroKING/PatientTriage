@@ -283,7 +283,7 @@ def test_surge_reclassification():
     sm.activate()
     test_cases = [
         ("p1", True, 18, True, True, False, "GREEN"),
-        ("p2", False, 0, False, False, False, "BLACK"),
+        ("p2", False, 0, False, False, False, "BLUE"),
         ("p3", False, 35, True, True, False, "RED"),
         ("p4", False, 20, False, True, False, "RED"),
         ("p5", False, 20, True, True, False, "YELLOW"),
@@ -295,7 +295,7 @@ def test_surge_reclassification():
 
     stats = sm.get_stats()
     assert stats["GREEN"] == 1
-    assert stats["BLACK"] == 1
+    assert stats["BLUE"] == 1
     assert stats["RED"] == 2
     assert stats["YELLOW"] == 1
 
