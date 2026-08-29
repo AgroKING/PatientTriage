@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import sqlite3
 import config
 from src.database import get_all_waiting_patients, get_latest_vitals
@@ -12,17 +12,18 @@ def calculate_priority(esi_level: int, wait_minutes: float, deterioration_bonus:
 
 def parse_datetime(val: str | datetime) -> datetime:
     if isinstance(val, datetime):
-        return val
+        return val if val.tzinfo else val.replace(tzinfo=timezone.utc)
     try:
-        return datetime.fromisoformat(val)
+        dt = datetime.fromisoformat(val)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     except Exception:
-        return datetime.utcnow()
+        return datetime.now(timezone.utc)
 
 
 def get_ranked_queue(conn: sqlite3.Connection) -> list[dict]:
     patients = get_all_waiting_patients(conn)
     cursor = conn.cursor()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     ranked = []
 
     for p in patients:
@@ -71,7 +72,7 @@ def get_ranked_queue(conn: sqlite3.Connection) -> list[dict]:
 def check_deterioration_alerts(conn: sqlite3.Connection) -> list[dict]:
     patients = get_all_waiting_patients(conn)
     cursor = conn.cursor()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     alerts = []
 
     for p in patients:

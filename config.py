@@ -70,3 +70,7 @@ SEPSIS_KEYWORDS = ["confused", "confusion", "lethargic", "lethargy", "not acting
 STROKE_KEYWORDS = ["slurred speech", "facial droop", "arm weakness", "sudden headache", "vision loss"]
 RESPIRATORY_KEYWORDS = ["shortness of breath", "dyspnea", "wheezing", "cannot breathe", "choking"]
 TRAUMA_KEYWORDS = ["gunshot", "stabbing", "fall from height", "car accident", "mva", "crush injury"]
+
+# --- ML Model Path ---
+MODEL_PATH = "data/triage_model.joblib"
+

@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
 from src.database import get_latest_vitals, insert_patient, insert_vitals
@@ -186,3 +187,103 @@ def get_training_data(conn: sqlite3.Connection) -> tuple[pd.DataFrame, pd.Series
     X = df[feature_cols]
     y = df["triage_acuity"].astype(int)
     return X, y
+
+
+def seed_demo_patients(conn: sqlite3.Connection) -> None:
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM patients")
+    if cursor.fetchone()[0] > 0:
+        return
+
+    now = datetime.now(timezone.utc)
+    cases = [
+        (
+            Patient(id="DEMO-001", name="Alice Shock", age=50, sex="F", chief_complaint="Unresponsive and cold to touch", current_esi=1, arrival_time=now),
+            VitalSigns(patient_id="DEMO-001", heart_rate=35, respiratory_rate=8, spo2=75, systolic_bp=55, diastolic_bp=30, temperature=34.5, consciousness="U")
+        ),
+        (
+            Patient(id="DEMO-002", name="Bob Trauma", age=28, sex="M", chief_complaint="MVA crush injury severe respiratory distress", current_esi=1, arrival_time=now),
+            VitalSigns(patient_id="DEMO-002", heart_rate=145, respiratory_rate=38, spo2=82, systolic_bp=80, diastolic_bp=50, temperature=36.2, consciousness="P")
+        ),
+        (
+            Patient(id="DEMO-003", name="Carol Cardiac", age=54, sex="F", chief_complaint="Jaw pain, epigastric discomfort, persistent nausea", current_esi=2, arrival_time=now - timedelta(minutes=5)),
+            VitalSigns(patient_id="DEMO-003", heart_rate=88, respiratory_rate=18, spo2=97, systolic_bp=135, diastolic_bp=85, temperature=36.8, pain_score=6)
+        ),
+        (
+            Patient(id="DEMO-004", name="David Sepsis", age=78, sex="M", chief_complaint="Confused, lethargic, not acting right", current_esi=2, arrival_time=now - timedelta(minutes=15)),
+            VitalSigns(patient_id="DEMO-004", heart_rate=112, respiratory_rate=24, spo2=93, systolic_bp=95, diastolic_bp=55, temperature=35.4, consciousness="V")
+        ),
+        (
+            Patient(id="DEMO-005", name="Eva Peds", age=4, sex="F", chief_complaint="High fever and rapid breathing", current_esi=2, arrival_time=now - timedelta(minutes=12)),
+            VitalSigns(patient_id="DEMO-005", heart_rate=165, respiratory_rate=36, spo2=94, systolic_bp=85, diastolic_bp=55, temperature=39.2, pain_score=7)
+        ),
+        (
+            Patient(id="DEMO-006", name="Frank Pain", age=35, sex="M", chief_complaint="Acute renal colic severe flank pain", current_esi=2, arrival_time=now - timedelta(minutes=8)),
+            VitalSigns(patient_id="DEMO-006", heart_rate=95, respiratory_rate=18, spo2=98, systolic_bp=140, diastolic_bp=90, temperature=37.0, pain_score=9)
+        ),
+        (
+            Patient(id="DEMO-007", name="Grace Diabetic", age=62, sex="F", chief_complaint="Profuse sweating, sudden dyspnea, extreme weakness", medical_history="Type 2 diabetes", current_esi=2, arrival_time=now - timedelta(minutes=2)),
+            VitalSigns(patient_id="DEMO-007", heart_rate=105, respiratory_rate=22, spo2=93, systolic_bp=130, diastolic_bp=82, temperature=36.9, pain_score=2)
+        ),
+        (
+            Patient(id="DEMO-008", name="Henry Abdo", age=42, sex="M", chief_complaint="Right lower quadrant abdominal pain for 6 hours", current_esi=3, arrival_time=now - timedelta(minutes=45)),
+            VitalSigns(patient_id="DEMO-008", heart_rate=80, respiratory_rate=16, spo2=99, systolic_bp=125, diastolic_bp=80, temperature=37.2, pain_score=4)
+        ),
+        (
+            Patient(id="DEMO-009", name="Iris Headache", age=31, sex="F", chief_complaint="Moderate migraine with light sensitivity", current_esi=3, arrival_time=now - timedelta(minutes=35)),
+            VitalSigns(patient_id="DEMO-009", heart_rate=76, respiratory_rate=15, spo2=98, systolic_bp=118, diastolic_bp=75, temperature=36.8, pain_score=5)
+        ),
+        (
+            Patient(id="DEMO-010", name="Jack Fracture", age=22, sex="M", chief_complaint="Closed wrist deformity after skateboard fall", current_esi=3, arrival_time=now - timedelta(minutes=25)),
+            VitalSigns(patient_id="DEMO-010", heart_rate=84, respiratory_rate=16, spo2=99, systolic_bp=128, diastolic_bp=82, temperature=36.7, pain_score=6)
+        ),
+        (
+            Patient(id="DEMO-011", name="Karen Asthma", age=29, sex="F", chief_complaint="Mild asthma flare responsive to inhaler", medical_history="Asthma", current_esi=3, arrival_time=now - timedelta(minutes=22)),
+            VitalSigns(patient_id="DEMO-011", heart_rate=88, respiratory_rate=20, spo2=96, systolic_bp=120, diastolic_bp=80, temperature=37.0, pain_score=2)
+        ),
+        (
+            Patient(id="DEMO-012", name="Leo Vomit", age=50, sex="M", chief_complaint="Nausea and vomiting x 2 days", current_esi=3, arrival_time=now - timedelta(minutes=18)),
+            VitalSigns(patient_id="DEMO-012", heart_rate=85, respiratory_rate=16, spo2=98, systolic_bp=115, diastolic_bp=75, temperature=37.3, pain_score=3)
+        ),
+        (
+            Patient(id="DEMO-013", name="Mona Cellulitis", age=60, sex="F", chief_complaint="Redness and swelling in right lower leg", current_esi=3, arrival_time=now - timedelta(minutes=14)),
+            VitalSigns(patient_id="DEMO-013", heart_rate=82, respiratory_rate=16, spo2=98, systolic_bp=130, diastolic_bp=80, temperature=37.6, pain_score=4)
+        ),
+        (
+            Patient(id="DEMO-014", name="Ned ZeroHist", age=38, sex="M", chief_complaint="Persistent abdominal cramps and nausea", medical_history="", current_esi=3, arrival_time=now - timedelta(minutes=10)),
+            VitalSigns(patient_id="DEMO-014", heart_rate=78, respiratory_rate=16, spo2=98, systolic_bp=120, diastolic_bp=80, temperature=37.0, pain_score=3)
+        ),
+        (
+            Patient(id="DEMO-015", name="Olivia UTI", age=26, sex="F", chief_complaint="Dysuria and urinary frequency", current_esi=3, arrival_time=now - timedelta(minutes=60)),
+            VitalSigns(patient_id="DEMO-015", heart_rate=74, respiratory_rate=14, spo2=99, systolic_bp=110, diastolic_bp=70, temperature=37.1, pain_score=3)
+        ),
+        (
+            Patient(id="DEMO-016", name="Paul Cut", age=19, sex="M", chief_complaint="Clean finger laceration from kitchen knife", current_esi=4, arrival_time=now - timedelta(minutes=130)),
+            VitalSigns(patient_id="DEMO-016", heart_rate=72, respiratory_rate=14, spo2=99, systolic_bp=118, diastolic_bp=76, temperature=36.7, pain_score=2)
+        ),
+        (
+            Patient(id="DEMO-017", name="Quinn Ankle", age=25, sex="F", chief_complaint="Twisted ankle while jogging", current_esi=4, arrival_time=now - timedelta(minutes=80)),
+            VitalSigns(patient_id="DEMO-017", heart_rate=70, respiratory_rate=14, spo2=99, systolic_bp=116, diastolic_bp=74, temperature=36.6, pain_score=3)
+        ),
+        (
+            Patient(id="DEMO-018", name="Rita Ear", age=6, sex="F", chief_complaint="Left ear pain and discharge", current_esi=4, arrival_time=now - timedelta(minutes=40)),
+            VitalSigns(patient_id="DEMO-018", heart_rate=90, respiratory_rate=20, spo2=99, systolic_bp=98, diastolic_bp=62, temperature=37.5, pain_score=3)
+        ),
+        (
+            Patient(id="DEMO-019", name="Sam Rash", age=45, sex="M", chief_complaint="Localized poison ivy rash on forearm", current_esi=4, arrival_time=now - timedelta(minutes=10)),
+            VitalSigns(patient_id="DEMO-019", heart_rate=68, respiratory_rate=14, spo2=99, systolic_bp=122, diastolic_bp=78, temperature=36.8, pain_score=1)
+        ),
+        (
+            Patient(id="DEMO-020", name="Tina Suture", age=33, sex="F", chief_complaint="Suture removal from healed wound", current_esi=5, arrival_time=now - timedelta(minutes=250)),
+            VitalSigns(patient_id="DEMO-020", heart_rate=65, respiratory_rate=12, spo2=99, systolic_bp=114, diastolic_bp=72, temperature=36.6, pain_score=0)
+        ),
+        (
+            Patient(id="DEMO-021", name="Uma Refill", age=67, sex="F", chief_complaint="Ran out of blood pressure medication, needs refill", current_esi=5, arrival_time=now - timedelta(minutes=120)),
+            VitalSigns(patient_id="DEMO-021", heart_rate=72, respiratory_rate=14, spo2=98, systolic_bp=135, diastolic_bp=82, temperature=36.7, pain_score=0)
+        ),
+    ]
+
+    for p, v in cases:
+        insert_patient(conn, p)
+        insert_vitals(conn, v)
+

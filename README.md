@@ -4,17 +4,17 @@ PatientTriage.ai is an intelligent clinical decision-support system designed
 to assist emergency department (ED) triage nurses in accurately assigning
 Emergency Severity Index (ESI) levels. By combining age-adjusted physiological
 danger zones, the National Early Warning Score (NEWS2), targeted red-flag
-clinical heuristics, and Large Language Model (LLM) complaint analysis, the
-platform delivers rapid, transparent, and defensible triage recommendations
+clinical heuristics, and a Large Language Model (LLM) for complaint analysis,
+the platform delivers rapid, transparent, and defensible triage recommendations
 with high-confidence clinical justifications in under ten words.
 
 In fast-paced, high-stress emergency environments, cognitive fatigue and
-incomplete data often lead to catastrophic under-triage—such as overlooking
+incomplete data often lead to catastrophic under-triage — such as overlooking
 atypical cardiac presentations in women, silent myocardial infarctions in
 diabetic patients, or compensated shock in pediatrics. PatientTriage.ai
-addresses these challenges through asymmetric safety-first escalation, dynamic
-waiting room priority re-ranking, immutable audit logging, and rapid 전환
-into the START protocol during mass-casualty surges.
+addresses these challenges through asymmetric safety-first escalation, a
+dynamic waiting room priority queue, immutable audit logging, and rapid
+switching into the START protocol during mass-casualty surges.
 
 For source code, issue tracking, and contributions, visit the
 [PatientTriage GitHub Repository](https://github.com/AgroKING/PatientTriage).
@@ -29,6 +29,7 @@ For source code, issue tracking, and contributions, visit the
 - Architecture
 - Clinical methodology
 - Dataset
+- ML model training
 - Safety & compliance
 - Testing
 - Troubleshooting
@@ -40,61 +41,77 @@ For source code, issue tracking, and contributions, visit the
 This project requires the following tools and services:
 
 - Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip for dependency management
 - [Groq API Key](https://console.groq.com/) for high-speed Llama-3 inference
-  (optional; regex fallback active if omitted)
-- Kaggle account to obtain the optional 100k Triagegeist dataset
+  (optional — regex fallback activates automatically if omitted)
+- Kaggle account to obtain the optional 100k-record Triagegeist dataset
+  (optional — 21 built-in demo patients are seeded automatically on first run)
 
 
 ## Installation
 
-1. Clone the repository to your local workstation:
+1. Clone the repository:
     ```bash
     git clone https://github.com/AgroKING/PatientTriage.git
     cd PatientTriage
     ```
-1. Install the required Python dependencies:
+1. Create a virtual environment and install dependencies:
     ```bash
-    pip install -r requirements.txt
+    uv venv
+    uv pip install -r requirements.txt
+    ```
+    Or with pip:
+    ```bash
+    python -m venv .venv
+    .venv\Scripts\pip install -r requirements.txt   # Windows
+    # source .venv/bin/activate && pip install -r requirements.txt  # macOS/Linux
     ```
 
 
 ## Configuration
 
-1. Set up your Groq API key in your shell environment:
+1. Set up your Groq API key (optional — keyword fallback is used if omitted):
     ```bash
+    # Windows PowerShell
+    $env:GROQ_API_KEY = "gsk_your_groq_api_key_here"
+
+    # macOS / Linux
     export GROQ_API_KEY="gsk_your_groq_api_key_here"
     ```
-1. Download the optional Triagegeist dataset following the instructions in
-   [Dataset Documentation](data/README.md).
-1. Initialize the SQLite database and seed initial test cohorts:
+1. The SQLite database and the 21 demo patients are seeded automatically on
+   first launch — no manual setup required.
+1. To use the full 100k-record Triagegeist dataset, follow the instructions in
+   [data/README.md](data/README.md), then run the model training script:
     ```bash
-    python3 -c "import config, src.database as db; db.init_db(config.DB_PATH); print('Database initialized.')"
+    .venv\Scripts\python train_model.py    # Windows
+    # python train_model.py               # macOS/Linux
     ```
 
 
 ## Usage
 
-Launch the multi-page Streamlit application with the following command:
+Launch the multi-page Streamlit application:
 
 ```bash
-streamlit run app.py
+.venv\Scripts\streamlit run app.py    # Windows
+# streamlit run app.py               # macOS/Linux
 ```
 
 The application provides four operational modules accessible from the sidebar:
 
-- **Patient intake**: Perform manual vitals and chief complaint intake or
-  load pre-configured patient records from the database. View instant ESI
-  scoring, confidence bars, NEWS2 breakdown, and clinician Accept/Override
-  actions.
-- **Live queue**: Monitor real-time dynamic queue rankings combining ESI
-  acuity and waiting elapsed time with automatic deterioration alerts for
-  overdue patients.
-- **Audit log**: Review the tamper-evident, append-only audit trail capturing
-  all AI suggestions, clinician overrides, reason codes, rationale notes, and
-  decision dwell times, with one-click CSV export.
-- **Surge mode**: Instantly toggle Simple Triage and Rapid Treatment (START)
-  mass-casualty triage protocol and execute 3x volume emergency simulations
-  with interactive Plotly distribution charts.
+- **Patient intake**: Manual vitals and chief complaint entry, or load a
+  pre-seeded patient from the database. Includes an optional speech-to-text
+  recorder for hands-free complaint capture. Produces instant ESI scoring,
+  confidence bar, NEWS2 breakdown, and clinician Accept/Override controls.
+- **Live queue**: Real-time dynamic queue ranking combining ESI acuity and
+  elapsed wait time, with automatic deterioration alerts for overdue patients.
+  Auto-refreshes every 5 seconds.
+- **Audit log**: Tamper-evident append-only trail capturing all AI suggestions,
+  clinician overrides, reason codes, and decision dwell times. One-click CSV
+  export.
+- **Surge mode**: Toggle Simple Triage and Rapid Treatment (START) protocol
+  for mass-casualty events. Includes a 3× volume disaster simulation with
+  Plotly category distribution chart.
 
 
 ## Architecture
@@ -124,6 +141,7 @@ PatientTriage.ai employs a layered, safety-centric software architecture:
 +-------------------------------------------------------------------------+
 ```
 
+
 ### Technology stack
 
 | Component | Technology | Rationale |
@@ -140,6 +158,7 @@ PatientTriage.ai employs a layered, safety-centric software architecture:
 
 ## Clinical methodology
 
+
 ### ESI decision tree
 
 The Emergency Severity Index (ESI) stratification follows a 4-step algorithm:
@@ -152,22 +171,39 @@ The Emergency Severity Index (ESI) stratification follows a 4-step algorithm:
   1 resource = ESI 4, >= 2 resources = ESI 3, with danger zone escalation to
   ESI 2).
 
+
 ### Physiological danger zones
 
 Vital signs are evaluated against age-specific physiological boundaries:
+
 - **Neonate (0–28d)**: HR > 180 or < 100, RR > 50 or < 25, Temp > 38.0°C.
 - **Infant (28d–3m)**: HR > 180 or < 90, RR > 50 or < 20, Temp > 38.0°C.
-- **Toddler (3m–3y)**: HR > 160, RR > 40, SBP < 70 + (2 * age), Temp > 39.0°C.
-- **Child (3–8y)**: HR > 140, RR > 30, SBP < 70 + (2 * age), Temp > 39.0°C.
+- **Toddler (3m–3y)**: HR > 160, RR > 40, SBP < 70 + (2 × age), Temp > 39.0°C.
+- **Child (3–8y)**: HR > 140, RR > 30, SBP < 70 + (2 × age), Temp > 39.0°C.
 - **Adult (8–65y)**: HR > 100 or < 50, RR > 20 or < 10, SBP < 90, Temp > 40.0°C.
 - **Geriatric (65y+)**: HR > 90, RR > 20, SBP < 100, Temp < 36.0°C or > 38.0°C.
 
+
 ### Asymmetric safety escalation
 
-To minimize preventable mortality from under-triage, the decision model
+To minimise preventable mortality from under-triage, the decision model
 deliberately biases toward escalation: any case scoring ESI 3 with machine
-learning confidence below 70% or any identified red flag pattern is
+learning confidence below 70%, or any identified red flag pattern, is
 automatically escalated to ESI 2 for immediate physician evaluation.
+
+
+### Red flag heuristics
+
+The system detects four high-risk atypical presentations:
+
+- **ATYPICAL_CARDIAC_FEMALE** — female aged 40+, complaint contains jaw pain,
+  epigastric discomfort, nausea, fatigue, back pain, or indigestion.
+- **GERIATRIC_SEPSIS** — age 65+, sepsis keywords, combined with hypothermia,
+  hyperthermia, or elevated shock index.
+- **PEDIATRIC_COMPENSATED_SHOCK** — age < 8, tachycardia above age threshold,
+  yet systolic BP still normal (compensated phase).
+- **SILENT_MI_DIABETIC** — diabetic patient with diaphoresis or dyspnea but
+  no complaint of chest pain.
 
 
 ## Dataset
@@ -175,8 +211,31 @@ automatically escalated to ESI 2 for immediate physician evaluation.
 This project is built and validated using the Triagegeist open dataset:
 
 - **Source**: Triagegeist dataset by laitinenfredriksson on Kaggle.
-- **Foundations**: Statistically modeled from MIMIC-IV-ED and NHAMCS cohorts.
-- **Records**: 100,000 anonymized emergency department patient encounters.
+- **Foundations**: Statistically modelled from MIMIC-IV-ED and NHAMCS cohorts.
+- **Records**: 100,000 anonymised emergency department patient encounters.
+
+Download instructions are provided in [data/README.md](data/README.md).
+
+The application includes 21 built-in demo patients covering all required
+prototype diversity criteria (pediatric, geriatric, atypical cardiac,
+ambiguous presentation, zero-history) and seeds them automatically on first
+launch without requiring the dataset download.
+
+
+## ML model training
+
+The Hybrid Risk Scorer combines deterministic clinical rules with a trained
+Random Forest classifier. Without a trained model the system falls back to
+rules-only scoring (confidence 0.70). To enable ML scoring:
+
+1. Download the Triagegeist dataset to `data/` (see [data/README.md](data/README.md)).
+1. Run the training script:
+    ```bash
+    .venv\Scripts\python train_model.py    # Windows
+    # python train_model.py               # macOS/Linux
+    ```
+1. The trained model is saved to `data/triage_model.joblib` and loaded
+   automatically on the next application start.
 
 
 ## Safety & compliance
@@ -187,6 +246,9 @@ This project is built and validated using the Triagegeist open dataset:
   and score breakdowns, leaving full decision authority with licensed nurses.
 - **HIPAA and data privacy**: All demo records are synthetic or de-identified.
   No Protected Health Information (PHI) is transmitted or stored.
+- **Regulatory jurisdiction assumed**: United States (HIPAA). Audit log entries
+  record clinician ID, override reason codes, free-text rationale notes, and
+  dwell time to satisfy documentation requirements.
 - **Disclaimer**: This tool is an academic prototype and is not certified for
   independent diagnostic or therapeutic clinical use.
 
@@ -197,18 +259,27 @@ Run the full automated test suite covering clinical rules, risk scoring, queue
 ranking, and end-to-end pipelines:
 
 ```bash
-pytest tests/ -v
+.venv\Scripts\python -m pytest tests/ -v    # Windows
+# python -m pytest tests/ -v               # macOS/Linux
 ```
+
+Expected result: **43 passed, 0 warnings**.
 
 
 ## Troubleshooting
 
-- **Groq API key not set**: The application automatically detects missing API
-  keys and falls back to the deterministic keyword heuristic engine. To enable
-  LLM inference, export `GROQ_API_KEY`.
-- **Dataset file not found**: Download `train.csv` from Kaggle into `data/` as
-  detailed in [Dataset README](data/README.md), or use the built-in demo cohort
-  generator.
+- **Groq API key not set**: The application automatically detects a missing
+  API key and falls back to the deterministic keyword heuristic engine. To
+  enable LLM inference, set the `GROQ_API_KEY` environment variable.
+- **Dataset file not found**: Download `train.csv` from Kaggle into `data/`
+  as detailed in [data/README.md](data/README.md). The built-in demo cohort
+  is seeded automatically and does not require the dataset.
+- **Speech-to-text not available**: The STT module is a stub. The recorder
+  widget displays a warning and leaves the Chief Complaint field editable.
+  To enable transcription, install `faster-whisper` and implement
+  `src/stt_engine.py`.
+- **ML model not found**: Run `train_model.py` after downloading the dataset.
+  Without the model the system operates in rules-only mode.
 
 
 ## Maintainers

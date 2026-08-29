@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 from src.database import (
     get_audit_trail,
@@ -301,7 +301,7 @@ def test_surge_reclassification():
 
 
 def test_queue_ordering(test_db):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     p1 = Patient(id="q1", name="ESI 1", age=40, sex="M", arrival_time=now, current_esi=1)
     p2 = Patient(id="q2", name="ESI 2", age=40, sex="M", arrival_time=now, current_esi=2)
     p3 = Patient(id="q3", name="ESI 3 Long Wait", age=40, sex="M", arrival_time=now - timedelta(minutes=60), current_esi=3)

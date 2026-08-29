@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 from src.database import init_db, insert_patient
 from src.models import Patient
@@ -22,7 +22,7 @@ def test_esi2_alert_at_11_min(tmp_path):
     db_path = str(tmp_path / "test.db")
     conn = init_db(db_path)
 
-    arrival = datetime.utcnow() - timedelta(minutes=11)
+    arrival = datetime.now(timezone.utc) - timedelta(minutes=11)
     patient = Patient(
         id="p_esi2",
         name="ESI2 Patient",
@@ -43,7 +43,7 @@ def test_esi3_no_alert_at_20_min(tmp_path):
     db_path = str(tmp_path / "test.db")
     conn = init_db(db_path)
 
-    arrival = datetime.utcnow() - timedelta(minutes=20)
+    arrival = datetime.now(timezone.utc) - timedelta(minutes=20)
     patient = Patient(
         id="p_esi3",
         name="ESI3 Patient",
@@ -62,7 +62,7 @@ def test_esi3_alert_at_31_min(tmp_path):
     db_path = str(tmp_path / "test.db")
     conn = init_db(db_path)
 
-    arrival = datetime.utcnow() - timedelta(minutes=31)
+    arrival = datetime.now(timezone.utc) - timedelta(minutes=31)
     patient = Patient(
         id="p_esi3_late",
         name="ESI3 Late Patient",

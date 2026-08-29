@@ -2,6 +2,7 @@ import streamlit as st
 import config
 from src.database import get_all_patients, get_all_waiting_patients, init_db
 from src.queue_manager import check_deterioration_alerts
+from src.data_loader import seed_demo_patients
 
 st.set_page_config(
     page_title="PatientTriage.ai",
@@ -10,8 +11,60 @@ st.set_page_config(
 )
 
 conn = init_db(config.DB_PATH)
+seed_demo_patients(conn)
+
 st.session_state.setdefault("db_conn", conn)
 st.session_state.setdefault("surge_active", False)
+
+# Inject custom premium styling
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+    
+    /* Apply Outfit font to all elements */
+    html, body, [class*="css"], .stMarkdown, .stText, p, div, span, label, h1, h2, h3, h4, h5, h6 {
+        font-family: 'Outfit', sans-serif !important;
+    }
+
+    /* Style block alerts to look premium */
+    div[data-testid="stAlert"] {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Premium medical card containers using container boxes */
+    div[data-testid="stMetricContainer"] {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        padding: 15px 20px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    div[data-testid="stMetricContainer"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    /* Pulsing animation for active alarms */
+    @keyframes pulse-red {
+        0% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+        70% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    
+    /* Apply red pulsing warning borders to active alerts in sidebar/main */
+    .pulse-alarm {
+        animation: pulse-red 2s infinite !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Sidebar
 st.sidebar.title("🏥 PatientTriage.ai")

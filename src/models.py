@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 import uuid
 from pydantic import BaseModel, Field
@@ -11,7 +11,7 @@ class Patient(BaseModel):
     name: str
     age: float
     sex: Literal["M", "F"]
-    arrival_time: datetime = Field(default_factory=datetime.utcnow)
+    arrival_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     chief_complaint: str = ""
     medical_history: str = ""
     status: Literal["WAITING", "IN_TREATMENT", "FAST_TRACK", "DISCHARGED"] = "WAITING"
@@ -20,7 +20,7 @@ class Patient(BaseModel):
 
 class VitalSigns(BaseModel):
     patient_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     heart_rate: int
     respiratory_rate: int
     spo2: float
@@ -42,7 +42,7 @@ class ComplaintAnalysis(BaseModel):
 
 class TriageResult(BaseModel):
     patient_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     esi_level: int
     news2_score: int
     confidence: float
@@ -55,7 +55,7 @@ class TriageResult(BaseModel):
 
 class AuditEntry(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     patient_id: str
     clinician_id: str
     event_type: Literal["SCORED", "ACCEPTED", "OVERRIDDEN", "REASSESSED"]

@@ -70,6 +70,23 @@ if mode == "Load from Dataset":
     else:
         st.warning("Database empty. Please switch to Manual Entry or populate data.")
 
+# Speech-to-Text Complaint Input (Optional)
+st.subheader("🎤 Speech-to-Text Complaint Input")
+audio_file = st.audio_input("Record chief complaint or symptom description:")
+if audio_file is not None:
+    if "transcribed_text" not in st.session_state or st.session_state.get("last_audio") != audio_file:
+        try:
+            from src.stt_engine import STTEngine
+            stt = STTEngine()
+            transcription = stt.transcribe(audio_file.read())
+            st.session_state["transcribed_text"] = transcription
+            st.session_state["last_audio"] = audio_file
+            st.success("🎙️ Transcribed successfully!")
+        except NotImplementedError as e:
+            st.warning(f"🎙️ Speech-to-text not available: {str(e)}")
+            st.session_state["transcribed_text"] = ""
+            st.session_state["last_audio"] = audio_file
+
 # Intake Form
 with st.form("triage_intake_form"):
     st.subheader("1. Patient Demographics & Vitals")
@@ -98,9 +115,10 @@ with st.form("triage_intake_form"):
         supplemental_o2 = st.checkbox("Supplemental O2 in use", value=vitals_data.get("supplemental_o2", False))
 
     st.subheader("2. Clinical Presentation")
+    default_complaint = st.session_state.get("transcribed_text") or patient_data.get("chief_complaint", "Patient presents with persistent nausea, jaw tightness, and upper back discomfort.")
     chief_complaint = st.text_area(
         "Chief Complaint",
-        value=patient_data.get("chief_complaint", "Patient presents with persistent nausea, jaw tightness, and upper back discomfort."),
+        value=default_complaint,
         height=70,
     )
     medical_history = st.text_area(

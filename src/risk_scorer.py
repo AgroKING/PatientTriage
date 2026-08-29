@@ -21,6 +21,8 @@ class HybridRiskScorer:
             "age", "sex_encoded", "heart_rate", "respiratory_rate",
             "spo2", "systolic_bp", "diastolic_bp", "temperature", "pain_score"
         ]
+        if model_path is None:
+            model_path = config.MODEL_PATH
         if model_path and os.path.exists(model_path):
             try:
                 self.model = joblib.load(model_path)
