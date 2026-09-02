@@ -1,10 +1,11 @@
 import random
+import time
 import plotly.express as px
 import streamlit as st
 import config
 from src.database import get_all_patients, init_db
 from src.surge_manager import SurgeManager
-from src.ui import inject_custom_css
+from src.ui import inject_custom_css, START_COLORS
 
 conn = init_db(config.DB_PATH)
 st.session_state.setdefault("db_conn", conn)
@@ -35,6 +36,41 @@ with col_stat:
         st.error("**SURGE MODE ACTIVE** — Simple Triage and Rapid Treatment (START) Protocol Engaged")
     else:
         st.info("Surge mode is currently inactive. Standard ESI scoring is in effect across all modules.")
+
+
+def render_surge_categories(stats: dict, categorized: dict) -> None:
+    """Render the 4-column category distribution using proper styled blocks."""
+    c_red, c_yellow, c_green, c_blue = st.columns(4)
+    order = [
+        (c_red,    "RED"),
+        (c_yellow, "YELLOW"),
+        (c_green,  "GREEN"),
+        (c_blue,   "BLUE"),
+    ]
+    for col, cat_key in order:
+        sc = START_COLORS[cat_key]
+        # Merge BLACK into BLUE (expectant)
+        count = stats.get(cat_key, 0) + (stats.get("BLACK", 0) if cat_key == "BLUE" else 0)
+        pids = categorized.get(cat_key, [])
+        if cat_key == "BLUE":
+            pids = list(dict.fromkeys(pids + categorized.get("BLACK", [])))
+
+        pid_items = "".join(
+            f'<div class="surge-pid">{pid[:20]}</div>'
+            for pid in pids[:8]  # cap display at 8 per column
+        )
+        suffix = f'<div class="surge-pid" style="color:#3A404C;">+{len(pids)-8} more</div>' if len(pids) > 8 else ""
+
+        with col:
+            st.markdown(
+                f'<div class="surge-cat-block cat-{cat_key}">'
+                f'<div class="surge-cat-label">{sc["label"]}</div>'
+                f'<div class="surge-cat-count cat-{cat_key}">{count}</div>'
+                f'{pid_items}{suffix}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
 
 if st.session_state["surge_active"]:
     st.divider()
@@ -78,65 +114,54 @@ if st.session_state["surge_active"]:
             follows_commands=follows_cmd,
             breathing_after_airway=breathing_airway,
         )
-        cat_labels = {"RED": "IMMEDIATE", "YELLOW": "DELAYED", "GREEN": "MINOR", "BLUE": "EXPECTANT"}
-        st.success(f"Assigned {selected_patient_str} to **{cat_labels.get(category, category)}**")
+        sc = START_COLORS.get(category, START_COLORS["GREEN"])
+        st.success(f"Assigned {selected_patient_str} to **{sc['label']}** ({category})")
 
-    # 2. Category Distribution Columns
+    # 2. Category Distribution
     st.divider()
     st.subheader("2. Real-Time Surge Protocol Distribution")
+    render_surge_categories(sm.get_stats(), sm.get_all_categorized())
 
-    stats = sm.get_stats()
-    categorized = sm.get_all_categorized()
-
-    c_red, c_yellow, c_green, c_blue = st.columns(4)
-
-    with c_red:
-        st.error(f"IMMEDIATE\n### {stats.get('RED', 0)}")
-        for pid in categorized.get("RED", []):
-            st.caption(f"• {pid}")
-
-    with c_yellow:
-        st.warning(f"DELAYED\n### {stats.get('YELLOW', 0)}")
-        for pid in categorized.get("YELLOW", []):
-            st.caption(f"• {pid}")
-
-    with c_green:
-        st.success(f"MINOR\n### {stats.get('GREEN', 0)}")
-        for pid in categorized.get("GREEN", []):
-            st.caption(f"• {pid}")
-
-    blue_count = stats.get("BLUE", 0) + stats.get("BLACK", 0)
-    blue_pts = list(dict.fromkeys(categorized.get("BLUE", []) + categorized.get("BLACK", [])))
-
-    with c_blue:
-        st.info(f"EXPECTANT\n### {blue_count}")
-        for pid in blue_pts:
-            st.caption(f"• {pid}")
-
-    # 3. Simulate 3x Surge
+    # 3. Simulate 3x Surge — animated
     st.divider()
     st.subheader("3. Disaster Simulation Engine")
     st.caption("Simulate sudden arrival of 30 casualty records under high volume surge conditions.")
 
     if st.button("Simulate 3x Surge (30 Patients)", use_container_width=True):
         sm.activate()
-        for i in range(1, 31):
+        progress_bar = st.progress(0)
+        cat_placeholder = st.empty()
+
+        TOTAL = 30
+        for i in range(1, TOTAL + 1):
             pid = f"SIM-SURGE-{i:03d}"
-            # Random distribution of conditions
             rand_roll = random.random()
             if rand_roll < 0.40:
-                # Minor walking wounded
-                sm.start_triage(pid, can_walk=True, respiratory_rate=18, has_radial_pulse=True, follows_commands=True, breathing_after_airway=False)
+                sm.start_triage(pid, can_walk=True, respiratory_rate=18, has_radial_pulse=True,
+                                follows_commands=True, breathing_after_airway=False)
             elif rand_roll < 0.70:
-                # Delayed
-                sm.start_triage(pid, can_walk=False, respiratory_rate=22, has_radial_pulse=True, follows_commands=True, breathing_after_airway=False)
+                sm.start_triage(pid, can_walk=False, respiratory_rate=22, has_radial_pulse=True,
+                                follows_commands=True, breathing_after_airway=False)
             elif rand_roll < 0.93:
-                # Immediate
-                sm.start_triage(pid, can_walk=False, respiratory_rate=36, has_radial_pulse=False, follows_commands=False, breathing_after_airway=False)
+                sm.start_triage(pid, can_walk=False, respiratory_rate=36, has_radial_pulse=False,
+                                follows_commands=False, breathing_after_airway=False)
             else:
-                # Expectant
-                sm.start_triage(pid, can_walk=False, respiratory_rate=0, has_radial_pulse=False, follows_commands=False, breathing_after_airway=False)
+                sm.start_triage(pid, can_walk=False, respiratory_rate=0, has_radial_pulse=False,
+                                follows_commands=False, breathing_after_airway=False)
 
+            progress_bar.progress(i / TOTAL)
+
+            # Update category display every 5 patients
+            if i % 5 == 0 or i == TOTAL:
+                stats_live = sm.get_stats()
+                cat_live = sm.get_all_categorized()
+                with cat_placeholder.container():
+                    render_surge_categories(stats_live, cat_live)
+
+            time.sleep(0.04)
+
+        progress_bar.empty()
+        st.toast(f"Surge simulation complete — {TOTAL} patients categorized", icon=None)
         st.rerun()
 
     # Chart
@@ -146,13 +171,7 @@ if st.session_state["surge_active"]:
         cat_name = "BLUE" if k in ("BLACK", "BLUE") else k
         df_chart.append({"Category": cat_name, "Count": v})
 
-    color_map = {
-        "RED": "#DC2626",
-        "YELLOW": "#CA8A04",
-        "GREEN": "#16A34A",
-        "BLUE": "#2563EB",
-        "BLACK": "#2563EB",
-    }
+    color_map = {k: START_COLORS[k]["border"] for k in START_COLORS}
     fig = px.bar(
         df_chart,
         x="Category",
@@ -161,4 +180,10 @@ if st.session_state["surge_active"]:
         color_discrete_map=color_map,
         title="START Category Allocation",
     )
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font_color="#E8E9EB",
+    )
     st.plotly_chart(fig, use_container_width=True)
+
