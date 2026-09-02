@@ -92,55 +92,57 @@ if audio_file is not None:
 
 # Intake Form
 with st.form("triage_intake_form"):
-    st.subheader("1. Patient Demographics & Vitals")
-    col1, col2, col3 = st.columns(3)
+    tab_demo, tab_clin = st.tabs(["1. Demographics & Vitals", "2. Clinical Presentation"])
 
-    with col1:
-        patient_name = st.text_input("Patient Full Name", value=patient_data.get("name", "Jane Doe"))
-        patient_age = st.number_input("Age (years)", min_value=0.01, max_value=120.0, value=patient_data.get("age", 45.0), step=1.0)
-        sex_idx = 1 if patient_data.get("sex", "M") == "F" else 0
-        patient_sex = st.selectbox("Sex", ["M", "F"], index=sex_idx)
-        avpu_options = ["A", "V", "P", "U"]
-        cur_avpu = vitals_data.get("consciousness", "A")
-        avpu_idx = avpu_options.index(cur_avpu) if cur_avpu in avpu_options else 0
-        consciousness = st.selectbox("Consciousness (AVPU)", avpu_options, index=avpu_idx, help="A=Alert, V=Voice, P=Pain, U=Unresponsive")
+    with tab_demo:
+        col1, col2, col3 = st.columns(3)
 
-    with col2:
-        heart_rate = st.number_input("Heart Rate (bpm)", min_value=10, max_value=280, value=vitals_data.get("heart_rate", 78))
-        respiratory_rate = st.number_input("Respiratory Rate (breaths/min)", min_value=0, max_value=80, value=vitals_data.get("respiratory_rate", 16))
-        spo2 = st.number_input("SpO2 (%)", min_value=40.0, max_value=100.0, value=vitals_data.get("spo2", 98.0), step=1.0)
-        systolic_bp = st.number_input("Systolic BP (mmHg)", min_value=30, max_value=300, value=vitals_data.get("systolic_bp", 122))
-        diastolic_bp = st.number_input("Diastolic BP (mmHg)", min_value=20, max_value=200, value=vitals_data.get("diastolic_bp", 78))
+        with col1:
+            patient_name = st.text_input("Patient Full Name", value=patient_data.get("name", "Jane Doe"))
+            patient_age = st.number_input("Age (years)", min_value=0.01, max_value=120.0, value=patient_data.get("age", 45.0), step=1.0)
+            sex_idx = 1 if patient_data.get("sex", "M") == "F" else 0
+            patient_sex = st.selectbox("Sex", ["M", "F"], index=sex_idx)
+            avpu_options = ["A", "V", "P", "U"]
+            cur_avpu = vitals_data.get("consciousness", "A")
+            avpu_idx = avpu_options.index(cur_avpu) if cur_avpu in avpu_options else 0
+            consciousness = st.selectbox("Consciousness (AVPU)", avpu_options, index=avpu_idx, help="A=Alert, V=Voice, P=Pain, U=Unresponsive")
 
-    with col3:
-        temperature = st.number_input("Temperature (°C)", min_value=28.0, max_value=44.0, value=vitals_data.get("temperature", 37.0), step=0.1)
-        pain_score = st.slider("Pain Score (0–10)", min_value=0, max_value=10, value=vitals_data.get("pain_score", 2))
-        supplemental_o2 = st.checkbox("Supplemental O2 in use", value=vitals_data.get("supplemental_o2", False))
+        with col2:
+            heart_rate = st.number_input("Heart Rate (bpm)", min_value=10, max_value=280, value=vitals_data.get("heart_rate", 78))
+            respiratory_rate = st.number_input("Respiratory Rate (breaths/min)", min_value=0, max_value=80, value=vitals_data.get("respiratory_rate", 16))
+            spo2 = st.number_input("SpO2 (%)", min_value=40.0, max_value=100.0, value=vitals_data.get("spo2", 98.0), step=1.0)
+            systolic_bp = st.number_input("Systolic BP (mmHg)", min_value=30, max_value=300, value=vitals_data.get("systolic_bp", 122))
+            diastolic_bp = st.number_input("Diastolic BP (mmHg)", min_value=20, max_value=200, value=vitals_data.get("diastolic_bp", 78))
 
-    st.subheader("2. Clinical Presentation")
-    default_complaint = st.session_state.get("transcribed_text") or patient_data.get("chief_complaint", "Patient presents with persistent nausea, jaw tightness, and upper back discomfort.")
-    chief_complaint = st.text_area(
-        "Chief Complaint",
-        value=default_complaint,
-        height=70,
-    )
-    medical_history = st.text_area(
-        "Medical History / Comorbidities (leave blank if zero-history / unknown)",
-        value=patient_data.get("medical_history", "Hypertension, Hyperlipidemia"),
-        height=50,
-    )
+        with col3:
+            temperature = st.number_input("Temperature (°C)", min_value=28.0, max_value=44.0, value=vitals_data.get("temperature", 37.0), step=0.1)
+            pain_score = st.slider("Pain Score (0–10)", min_value=0, max_value=10, value=vitals_data.get("pain_score", 2))
+            supplemental_o2 = st.checkbox("Supplemental O2 in use", value=vitals_data.get("supplemental_o2", False))
 
-    resource_choice = st.radio(
-        "Estimated Diagnostic/Therapeutic Resources Needed",
-        ["None (exam only)", "One (e.g., X-ray or simple script)", "Two or more (labs + imaging + IV)"],
-        index=2,
-    )
-    resources_map = {
-        "None (exam only)": 0,
-        "One (e.g., X-ray or simple script)": 1,
-        "Two or more (labs + imaging + IV)": 2,
-    }
-    resources_needed = resources_map[resource_choice]
+    with tab_clin:
+        default_complaint = st.session_state.get("transcribed_text") or patient_data.get("chief_complaint", "Patient presents with persistent nausea, jaw tightness, and upper back discomfort.")
+        chief_complaint = st.text_area(
+            "Chief Complaint",
+            value=default_complaint,
+            height=70,
+        )
+        medical_history = st.text_area(
+            "Medical History / Comorbidities (leave blank if zero-history / unknown)",
+            value=patient_data.get("medical_history", "Hypertension, Hyperlipidemia"),
+            height=50,
+        )
+
+        resource_choice = st.radio(
+            "Estimated Diagnostic/Therapeutic Resources Needed",
+            ["None (exam only)", "One (e.g., X-ray or simple script)", "Two or more (labs + imaging + IV)"],
+            index=2,
+        )
+        resources_map = {
+            "None (exam only)": 0,
+            "One (e.g., X-ray or simple script)": 1,
+            "Two or more (labs + imaging + IV)": 2,
+        }
+        resources_needed = resources_map[resource_choice]
 
     submitted = st.form_submit_button("Evaluate & Score Acuity", use_container_width=True)
 

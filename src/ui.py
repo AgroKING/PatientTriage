@@ -104,6 +104,7 @@ CUSTOM_CSS = """
 /* ── Base typography ── */
 html, body, p, label, h1, h2, h3, h4, h5, h6, .stMarkdown, .stText {
     font-family: 'Inter', 'IBM Plex Sans', sans-serif;
+    font-size: 1.05rem;
 }
 
 /* ── Metric containers ── */
@@ -437,6 +438,37 @@ div[data-testid="stAlert"] {
     font-size: 0.72rem;
     color: #5B6472;
     margin-bottom: 2px;
+}
+
+/* ── Tablet Optimizations ── */
+/* Touch Targets for Streamlit Widgets */
+div.stButton > button,
+div[data-baseweb="select"] > div,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stTextInput"] input,
+div[data-testid="stRadio"] label {
+    min-height: 48px !important;
+    font-size: 1.05rem !important;
+}
+
+div[data-testid="stRadio"] label {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+}
+
+/* Increase badge size and wait chip size slightly */
+.esi-badge {
+    padding: 4px 10px !important;
+    font-size: 0.85rem !important;
+}
+.wait-chip-value {
+    font-size: 1.1rem !important;
+}
+
+/* Sidebar toggle */
+button[data-testid="collapsedControl"] {
+    min-height: 48px !important;
+    min-width: 48px !important;
 }
 </style>
 """

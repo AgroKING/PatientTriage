@@ -9,6 +9,7 @@ st.set_page_config(
     page_title="PatientTriage.ai",
     page_icon="T",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 conn = init_db(config.DB_PATH)
