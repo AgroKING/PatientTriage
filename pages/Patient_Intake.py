@@ -16,13 +16,14 @@ from src.data_loader import select_demo_cases
 from src.llm_engine import LLMEngine
 from src.models import AuditEntry, Patient, TriageResult, VitalSigns
 from src.risk_scorer import HybridRiskScorer
-from src.ui import inject_custom_css
+from src.ui import inject_custom_css, ESI_NAMES, esi_badge_html
 
 conn = init_db(config.DB_PATH)
 st.session_state.setdefault("db_conn", conn)
 inject_custom_css()
 
 st.title("Patient Intake & AI Triage Scoring")
+st.caption("Vitals, chief complaint, and clinical history — scored against ESI rules, NEWS2, and red flag heuristics.")
 
 mode = st.radio("Select Intake Mode", ["Manual Entry", "Load from Dataset"], horizontal=True)
 
@@ -170,10 +171,41 @@ if submitted:
     insert_patient(conn, new_patient)
     insert_vitals(conn, new_vitals)
 
-    
-    with st.spinner("Analyzing complaint and evaluating clinical risk rules..."):
+
+    with st.status("Evaluating acuity...", expanded=True) as status:
+        import time as _time
+
+        # Step 1 — Complaint parsing
+        st.write("Parsing chief complaint text...")
+        _time.sleep(0.2)
         analysis = llm.analyze_complaint(chief_complaint, patient_age, patient_sex)
+        st.write("Complaint parsed.")
+
+        # Step 2 — Red flag checklist
+        st.write("Checking clinical red flag rules...")
+        _time.sleep(0.1)
+        rf_categories = [
+            ("Atypical cardiac (female 40+)", "ATYPICAL_CARDIAC_FEMALE"),
+            ("Geriatric sepsis risk", "GERIATRIC_SEPSIS"),
+            ("Silent MI — diabetic diaphoresis", "SILENT_MI_DIABETIC"),
+            ("Pediatric compensated shock", "PEDIATRIC_COMPENSATED_SHOCK"),
+        ]
+        for label, code in rf_categories:
+            triggered = code in analysis.red_flags
+            icon = "[TRIGGERED]" if triggered else "[clear]"
+            st.write(f"{icon} {label}")
+            _time.sleep(0.08)
+
+        # Step 3 — NEWS2
+        st.write("Computing NEWS2 vital sign score...")
+        _time.sleep(0.15)
+
+        # Step 4 — Hybrid model
+        st.write("Running hybrid clinical rule + ML consensus...")
         triage_result = scorer.score(new_patient, new_vitals, analysis, resources_needed)
+        _time.sleep(0.1)
+
+        status.update(label=f"Acuity assessed — ESI {triage_result.esi_level}", state="complete", expanded=False)
 
     update_patient_esi(conn, new_patient.id, triage_result.esi_level)
     insert_triage_result(conn, triage_result)
@@ -190,15 +222,7 @@ if "current_triage_result" in st.session_state and "current_patient" in st.sessi
     st.divider()
     st.subheader("AI Triage Recommendation")
 
-    esi_names = {
-        1: "ESI 1 — Resuscitation (Immediate)",
-        2: "ESI 2 — Emergent (High Risk / Danger Zone)",
-        3: "ESI 3 — Urgent (Multiple Resources)",
-        4: "ESI 4 — Less Urgent (One Resource)",
-        5: "ESI 5 — Non-Urgent (No Resources)",
-    }
-
-    level_name = esi_names.get(result.esi_level, f"ESI {result.esi_level}")
+    level_name = ESI_NAMES.get(result.esi_level, f"ESI {result.esi_level}")
     conf_pct = int(result.confidence * 100)
 
     res_col1, res_col2 = st.columns([1, 2])
@@ -224,8 +248,26 @@ if "current_triage_result" in st.session_state and "current_patient" in st.sessi
             st.success("No acute red flag rules triggered.")
 
         with st.expander("NEWS2 & Vital Breakdown"):
-            st.write(f"**Total NEWS2 Score**: {result.news2_score}")
-            st.json(vits.model_dump())
+            st.write(f"**Total NEWS2 Score:** `{result.news2_score}`")
+            vitals_display = [
+                ("Heart Rate", f"{vits.heart_rate} bpm"),
+                ("Respiratory Rate", f"{vits.respiratory_rate} br/min"),
+                ("SpO2", f"{vits.spo2}%"),
+                ("Systolic BP", f"{vits.systolic_bp} mmHg"),
+                ("Diastolic BP", f"{vits.diastolic_bp} mmHg"),
+                ("Temperature", f"{vits.temperature} °C"),
+                ("Pain Score", f"{vits.pain_score} / 10"),
+                ("Consciousness (AVPU)", vits.consciousness),
+                ("Supplemental O2", "Yes" if vits.supplemental_o2 else "No"),
+            ]
+            rows = "".join(
+                f'<tr><td>{label}</td><td>{value}</td></tr>'
+                for label, value in vitals_display
+            )
+            st.markdown(
+                f'<table class="vitals-table">{rows}</table>',
+                unsafe_allow_html=True,
+            )
 
     # Clinician Decision Buttons
     st.divider()
@@ -247,6 +289,7 @@ if "current_triage_result" in st.session_state and "current_patient" in st.sessi
                 vitals_snapshot=vits.model_dump(mode="json"),
             )
             insert_audit_log(conn, audit_entry)
+            st.toast(f"ESI {result.esi_level} accepted for {pat.name}", icon=None)
             st.success(f"Accepted ESI {result.esi_level} for {pat.name}. Recorded in audit log.")
 
     with act_col2:
@@ -284,4 +327,5 @@ if "current_triage_result" in st.session_state and "current_patient" in st.sessi
                     override_note=override_note,
                 )
                 insert_triage_result(conn, overridden_triage)
+                st.toast(f"Override recorded: ESI {result.esi_level} → ESI {override_esi}", icon=None)
                 st.warning(f"Override recorded: Updated {pat.name} from ESI {result.esi_level} to ESI {override_esi}.")
